@@ -19,8 +19,8 @@
     "path": "C:\\Users\\ghozz\\Desktop\\entreprise\\Projects\\Tuns\\android.keystore",
     "alias": "Tuns"
   },
-  "appVersionName": "1",
-  "appVersionCode": 1,
+  "appVersionName": "2",
+  "appVersionCode": 2,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://tun-s-web-responsive.vercel.app/manifest.json",
@@ -45,5 +45,5 @@
     "standalone",
     "minimal-ui"
   ],
-  "appVersion": "1"
+  "appVersion": "2"
 }
