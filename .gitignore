@@ -14,3 +14,15 @@ next.user-config.*
 node_modules
 .next/
 .DS_Store
+.vercel
+
+# Android TWA (Bubblewrap) — builds & machine-local
+twa-android/.gradle/
+twa-android/**/build/
+twa-android/**/build-root/
+twa-android/local.properties
+*.keystore
+*.jks
+*.apk
+*.aab
+*.idsig
