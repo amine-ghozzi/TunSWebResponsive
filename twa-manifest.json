@@ -1,6 +1,6 @@
 {
   "packageId": "app.vercel.tun_s_web_responsive.twa",
-  "host": "https://tun-web-responsive.vercel.app",
+  "host": "https://tuns-lac.vercel.app",
   "name": "Tun's Café resto — Caisse",
   "launcherName": "Tun's POS",
   "display": "standalone",
@@ -13,7 +13,7 @@
   "backgroundColor": "#FFFFFF",
   "enableNotifications": true,
   "startUrl": "/",
-  "iconUrl": "https://tun-s-web-responsive.vercel.app/tuns-logo.png",
+  "iconUrl": "https://tuns-lac.vercel.app/tuns-logo.png",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
     "path": "C:\\Users\\ghozz\\Desktop\\entreprise\\Projects\\Tuns\\android.keystore",
@@ -23,7 +23,7 @@
   "appVersionCode": 2,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
-  "webManifestUrl": "https://tun-s-web-responsive.vercel.app/manifest.json",
+  "webManifestUrl": "https://tuns-lac.vercel.app/manifest.json",
   "fallbackType": "customtabs",
   "features": {},
   "alphaDependencies": {
@@ -32,7 +32,7 @@
   "enableSiteSettingsShortcut": true,
   "isChromeOSOnly": false,
   "isMetaQuest": false,
-  "fullScopeUrl": "https://tun-s-web-responsive.vercel.app/",
+  "fullScopeUrl": "https://tuns-lac.vercel.app/",
   "minSdkVersion": 21,
   "orientation": "any",
   "fingerprints": [],
