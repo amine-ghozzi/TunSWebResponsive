@@ -1,21 +1,40 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { PwaProvider } from '@/components/pwa-provider'
 import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
+const APP_NAME = "Tun's POS"
+
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
+  ],
 }
 
 export const metadata: Metadata = {
-  title: "Tun's Café resto",
+  applicationName: APP_NAME,
+  title: {
+    default: "Tun's Café resto",
+    template: `%s — ${APP_NAME}`,
+  },
   description: 'Application de prise de commandes pour serveurs de restaurant',
   generator: 'v0.app',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: "Tun's Café resto",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   icons: {
     icon: [
       {
@@ -41,9 +60,9 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="fr">
       <body className="font-sans antialiased">
-        {children}
+        <PwaProvider>{children}</PwaProvider>
         <Analytics />
       </body>
     </html>
