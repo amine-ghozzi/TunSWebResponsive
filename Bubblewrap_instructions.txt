@@ -1,0 +1,34 @@
+npm install -g @bubblewrap/cli
+bubblewrap init --manifest=tun-s-web-responsive-clxf6cbp2-amines-projects-ea6a7e9a.vercel.app
+JDK setup
+Android SDK setup
+Answer Bubblewrap Questions
+bubblewrap build --universalApk
+Build the App
+Setting Up TWA Validation
+
+In your frontend project, go to the public folder, create a new folder called .well-known, and inside that, create a file called assetlinks.json.
+
+frontend/
+├── public/
+    ├── .well-known/
+        └── assetlinks.json
+What is the .well-known folder?
+A well-known folder is used to store files that define configurations for protocols, as it’s used for external sources to find the validation for your website. In our case, our app checks the well-known folder from our website and verifies the validation.
+
+Paste the following into assetlinks.json:
+
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "chat.yourapp.twa",
+      "sha256_cert_fingerprints": [
+       "your_sha256_fingerprint"
+      ]
+    }
+  }
+]
+
+keytool -list -v -keystore android.keystore -alias android
