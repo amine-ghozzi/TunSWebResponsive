@@ -1,8 +1,10 @@
 {
+  "id": "/",
   "name": "Tun's Café resto — Caisse",
   "short_name": "Tun's POS",
   "description": "Prise de commandes et paiement pour restaurant",
   "start_url": "/",
+  "scope": "/",
   "display": "fullscreen",
   "orientation": "portrait",
   "background_color": "#ffffff",
