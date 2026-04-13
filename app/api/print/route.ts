@@ -40,7 +40,6 @@ export async function POST(request: Request) {
     )
   }
 
-  /** Job complet : tout le ticket est construit en mémoire, puis un seul buffer est envoyé au TCP. */
   const buf = buildKitchenPrintJobBuffer(order)
 
   if (buf.length > MAX_BYTES) {

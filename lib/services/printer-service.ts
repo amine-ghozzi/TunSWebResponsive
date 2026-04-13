@@ -2,30 +2,76 @@ import type { Order } from '@/lib/types'
 
 const PRINTER_SETTINGS_KEY = 'printer_settings'
 
+const DEFAULT_PRINTER: PrinterConfig = {
+  ipAddress: '192.168.1.100',
+  port: 9100,
+  localRelayBaseUrl: '',
+}
+
 export interface PrinterConfig {
   ipAddress: string
   port: number
+  /**
+   * Base URL du relais HTTP sur le réseau local (ex. http://192.168.1.20:3910).
+   * Les requêtes d’impression partent alors du navigateur vers ce poste, qui ouvre le TCP vers l’imprimante.
+   * Laisser vide seulement si l’app Next tourne sur le même LAN que l’imprimante (ex. `next start` local).
+   */
+  localRelayBaseUrl: string
+}
+
+function normalizePrinterConfig(raw: Partial<PrinterConfig> | null): PrinterConfig {
+  const portRaw = Number(raw?.port)
+  const port =
+    Number.isFinite(portRaw) && portRaw >= 1 && portRaw <= 65535 ? portRaw : DEFAULT_PRINTER.port
+  return {
+    ipAddress:
+      typeof raw?.ipAddress === 'string' && raw.ipAddress.trim()
+        ? raw.ipAddress.trim()
+        : DEFAULT_PRINTER.ipAddress,
+    port,
+    localRelayBaseUrl:
+      typeof raw?.localRelayBaseUrl === 'string' ? raw.localRelayBaseUrl.trim() : '',
+  }
+}
+
+/** URLs d’impression : relais local (navigateur → LAN) ou API Next (serveur → LAN). */
+export function getPrinterHttpEndpoints(): { printUrl: string; testUrl: string } {
+  const envRelay =
+    typeof process !== 'undefined' && typeof process.env.NEXT_PUBLIC_PRINT_RELAY_URL === 'string'
+      ? process.env.NEXT_PUBLIC_PRINT_RELAY_URL.trim()
+      : ''
+
+  if (typeof window === 'undefined') {
+    return { printUrl: '/api/print', testUrl: '/api/print/test' }
+  }
+
+  const stored = normalizePrinterConfig(getPrinterSettings())
+  const base = (stored.localRelayBaseUrl || envRelay).replace(/\/$/, '')
+  if (base) {
+    return { printUrl: `${base}/print`, testUrl: `${base}/test` }
+  }
+  return { printUrl: '/api/print', testUrl: '/api/print/test' }
 }
 
 export function getPrinterSettings(): PrinterConfig {
   if (typeof window === 'undefined') {
-    return { ipAddress: '192.168.1.100', port: 9100 }
+    return { ...DEFAULT_PRINTER }
   }
 
   const stored = localStorage.getItem(PRINTER_SETTINGS_KEY)
   if (stored) {
     try {
-      return JSON.parse(stored)
+      return normalizePrinterConfig(JSON.parse(stored) as Partial<PrinterConfig>)
     } catch {
-      return { ipAddress: '192.168.1.100', port: 9100 }
+      return { ...DEFAULT_PRINTER }
     }
   }
-  return { ipAddress: '192.168.1.100', port: 9100 }
+  return { ...DEFAULT_PRINTER }
 }
 
 export function savePrinterSettings(config: PrinterConfig): void {
   if (typeof window === 'undefined') return
-  localStorage.setItem(PRINTER_SETTINGS_KEY, JSON.stringify(config))
+  localStorage.setItem(PRINTER_SETTINGS_KEY, JSON.stringify(normalizePrinterConfig(config)))
 }
 
 /**
@@ -206,11 +252,31 @@ export function buildKitchenPrintJobBuffer(order: any): Buffer {
 /** Envoie le ticket cuisine sur l'imprimante reseau (IP:port des reglages) via l'API Next.js (socket TCP). */
 export async function printKitchenTicket(order: Order): Promise<{ success: boolean; message: string }> {
   const config = getPrinterSettings()
+  const { printUrl } = getPrinterHttpEndpoints()
+  const envRelay =
+    typeof process !== 'undefined' && typeof process.env.NEXT_PUBLIC_PRINT_RELAY_URL === 'string'
+      ? process.env.NEXT_PUBLIC_PRINT_RELAY_URL.trim()
+      : ''
+
+  if (
+    typeof window !== 'undefined' &&
+    !config.localRelayBaseUrl &&
+    !envRelay &&
+    (window.location.hostname.endsWith('.vercel.app') ||
+      window.location.hostname === 'vercel.app')
+  ) {
+    return {
+      success: false,
+      message:
+        "Impression impossible depuis l'app en ligne sans relais local : configurez l'URL du relais (PC sur le même Wi-Fi que l'imprimante, commande pnpm run print-relay) ou hébergez l'app sur votre réseau local.",
+    }
+  }
 
   try {
-    const res = await fetch('/api/print', {
+    const res = await fetch(printUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      mode: printUrl.startsWith('http') ? 'cors' : 'same-origin',
       body: JSON.stringify({
         ipAddress: config.ipAddress,
         port: config.port,
@@ -263,11 +329,33 @@ export async function printKitchenTicket(order: Order): Promise<{ success: boole
 export async function testPrinterConnection(
   config?: PrinterConfig
 ): Promise<{ success: boolean; message: string }> {
-  const c = config ?? getPrinterSettings()
+  const c = normalizePrinterConfig(config ?? getPrinterSettings())
+  const { testUrl } = getPrinterHttpEndpoints()
+
+  const envRelay =
+    typeof process !== 'undefined' && typeof process.env.NEXT_PUBLIC_PRINT_RELAY_URL === 'string'
+      ? process.env.NEXT_PUBLIC_PRINT_RELAY_URL.trim()
+      : ''
+
+  if (
+    typeof window !== 'undefined' &&
+    !c.localRelayBaseUrl &&
+    !envRelay &&
+    (window.location.hostname.endsWith('.vercel.app') ||
+      window.location.hostname === 'vercel.app')
+  ) {
+    return {
+      success: false,
+      message:
+        "Depuis l'app en ligne, l'impression utilise le réseau de votre appareil : lancez « pnpm run print-relay » sur un PC du même Wi-Fi que l'imprimante, puis renseignez son URL (ex. http://192.168.1.20:3910) ci-dessus.",
+    }
+  }
+
   try {
-    const res = await fetch('/api/print/test', {
+    const res = await fetch(testUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      mode: testUrl.startsWith('http') ? 'cors' : 'same-origin',
       body: JSON.stringify({
         ipAddress: c.ipAddress,
         port: c.port,

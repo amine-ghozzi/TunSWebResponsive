@@ -32,6 +32,7 @@ export function SettingsDialog() {
   const [printerConfig, setPrinterConfig] = useState<PrinterConfig>({
     ipAddress: '192.168.1.100',
     port: 9100,
+    localRelayBaseUrl: '',
   })
   const [cloverConfig, setCloverConfig] = useState<CloverConfig>({
     merchantId: '',
@@ -147,6 +148,29 @@ export function SettingsDialog() {
                   })
                 }
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="printerRelay">URL du relais d&apos;impression (réseau local)</Label>
+              <Input
+                id="printerRelay"
+                placeholder="http://192.168.1.20:3910"
+                value={printerConfig.localRelayBaseUrl}
+                onChange={(e) =>
+                  setPrinterConfig({
+                    ...printerConfig,
+                    localRelayBaseUrl: e.target.value.trim(),
+                  })
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                Le navigateur envoie le ticket à cette adresse ; le relais ouvre le TCP vers
+                l&apos;imprimante sur le Wi‑Fi de l&apos;appareil. Indispensable si l&apos;app est
+                hébergée en ligne (ex. Vercel). Sur le poste relais :{' '}
+                <code className="rounded bg-muted px-1 py-0.5 text-[11px]">pnpm run print-relay</code>
+                . Laisser vide uniquement si vous utilisez l&apos;app Next sur le même LAN que
+                l&apos;imprimante.
+              </p>
             </div>
 
             {printerStatus.message && (

@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "inventory:export": "tsx --tsconfig tsconfig.json scripts/regenerate-inventory-from-clover.ts"
+    "inventory:export": "tsx --tsconfig tsconfig.json scripts/regenerate-inventory-from-clover.ts",
+    "print-relay": "tsx --tsconfig tsconfig.json scripts/print-relay.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
