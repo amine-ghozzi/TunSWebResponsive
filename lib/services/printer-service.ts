@@ -3,18 +3,22 @@ import type { Order } from '@/lib/types'
 const PRINTER_SETTINGS_KEY = 'printer_settings'
 
 const DEFAULT_PRINTER: PrinterConfig = {
+  printMode: 'system',
   ipAddress: '192.168.1.100',
   port: 9100,
   localRelayBaseUrl: '',
 }
 
 export interface PrinterConfig {
+  /**
+   * `system` : dialogue d’impression du navigateur / OS (aucun serveur, imprimantes locales ou réseau installées sur l’appareil).
+   * `network` : envoi ESC/POS brut en TCP (IP + port, option relais ou API Next).
+   */
+  printMode: 'system' | 'network'
   ipAddress: string
   port: number
   /**
-   * Base URL du relais HTTP sur le réseau local (ex. http://192.168.1.20:3910).
-   * Les requêtes d’impression partent alors du navigateur vers ce poste, qui ouvre le TCP vers l’imprimante.
-   * Laisser vide seulement si l’app Next tourne sur le même LAN que l’imprimante (ex. `next start` local).
+   * Base URL du relais HTTP (ex. http://192.168.1.20:3910), uniquement en mode `network` si besoin.
    */
   localRelayBaseUrl: string
 }
@@ -24,6 +28,7 @@ function normalizePrinterConfig(raw: Partial<PrinterConfig> | null): PrinterConf
   const port =
     Number.isFinite(portRaw) && portRaw >= 1 && portRaw <= 65535 ? portRaw : DEFAULT_PRINTER.port
   return {
+    printMode: raw?.printMode === 'network' ? 'network' : 'system',
     ipAddress:
       typeof raw?.ipAddress === 'string' && raw.ipAddress.trim()
         ? raw.ipAddress.trim()
@@ -72,6 +77,136 @@ export function getPrinterSettings(): PrinterConfig {
 export function savePrinterSettings(config: PrinterConfig): void {
   if (typeof window === 'undefined') return
   localStorage.setItem(PRINTER_SETTINGS_KEY, JSON.stringify(normalizePrinterConfig(config)))
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+function buildKitchenTicketHtmlBody(order: Order): string {
+  const lines: string[] = []
+  lines.push('<h1>CUISINE</h1>')
+  lines.push('<hr/>')
+  lines.push(`<div class="line"><strong>TABLE ${Number(order.tableNumber)}</strong></div>`)
+  lines.push('<hr/>')
+  lines.push('<div class="line">ARTICLES</div>')
+  lines.push('<hr/>')
+  const items = order.items ?? []
+  for (const item of items) {
+    const nom = escapeHtml(String(item.menuItem?.nom ?? 'Article'))
+    const qty = Number(item.quantity) || 1
+    lines.push(`<div class="line">${qty} x ${nom}</div>`)
+    const notes = (item.notes ?? '').trim()
+    if (notes) {
+      lines.push(`<div class="line" style="margin-left:1em">Note: ${escapeHtml(notes)}</div>`)
+    }
+  }
+  lines.push('<hr/>')
+  lines.push(`<div class="line">${escapeHtml(new Date().toLocaleString('fr-FR'))}</div>`)
+  lines.push(`<div class="line">REF ${escapeHtml(order.id.slice(-8))}</div>`)
+  lines.push('<hr/>')
+  lines.push('<div class="line">FIN COMMANDE</div>')
+  return lines.join('')
+}
+
+/**
+ * Impression 100 % locale : une iframe + window.print(), aucun serveur ni socket réseau vers l’app.
+ */
+function runWindowPrint(htmlBody: string, title: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      reject(new Error('Impression indisponible'))
+      return
+    }
+    const iframe = document.createElement('iframe')
+    iframe.setAttribute(
+      'style',
+      'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none'
+    )
+    document.body.appendChild(iframe)
+    const w = iframe.contentWindow
+    const d = iframe.contentDocument
+    if (!w || !d) {
+      document.body.removeChild(iframe)
+      reject(new Error('Impression indisponible'))
+      return
+    }
+    const docHtml = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>
+      * { box-sizing: border-box; }
+      body { font-family: ui-monospace, 'Courier New', monospace; font-size: 14px; padding: 12px; max-width: 80mm; margin: 0 auto; color: #000; background: #fff; }
+      h1 { font-size: 1.15em; margin: 0 0 8px; font-weight: bold; }
+      .line { white-space: pre-wrap; word-break: break-word; margin: 2px 0; }
+      hr { border: none; border-top: 1px dashed #000; margin: 8px 0; }
+      @media print {
+        @page { size: 80mm auto; margin: 4mm; }
+        body { padding: 0; }
+      }
+    </style></head><body>${htmlBody}</body></html>`
+    d.open()
+    d.write(docHtml)
+    d.close()
+    let finished = false
+    const cleanup = () => {
+      if (finished) return
+      finished = true
+      try {
+        document.body.removeChild(iframe)
+      } catch {
+        /* empty */
+      }
+      resolve()
+    }
+    w.addEventListener('afterprint', cleanup)
+    requestAnimationFrame(() => {
+      try {
+        w.focus()
+        w.print()
+      } catch (e) {
+        cleanup()
+        reject(e instanceof Error ? e : new Error("Echec de l'impression"))
+        return
+      }
+      setTimeout(() => {
+        if (!finished) cleanup()
+      }, 30000)
+    })
+  })
+}
+
+async function printKitchenTicketSystem(
+  order: Order
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const body = buildKitchenTicketHtmlBody(order)
+    await runWindowPrint(body, `Cuisine T${order.tableNumber}`)
+    return {
+      success: true,
+      message:
+        "Impression locale : choisissez l'imprimante dans la fenêtre du système (USB, Wi‑Fi ou Bluetooth selon votre configuration).",
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Erreur impression'
+    return { success: false, message: msg }
+  }
+}
+
+async function printTestPageSystem(): Promise<{ success: boolean; message: string }> {
+  try {
+    const body = `<h1>TEST IMPRESSION</h1><hr/><div class="line">Si l'aperçu est correct, l'impression locale fonctionne.</div><hr/><div class="line">${escapeHtml(new Date().toLocaleString('fr-FR'))}</div>`
+    await runWindowPrint(body, 'Test impression')
+    return {
+      success: true,
+      message:
+        "Fenêtre d'impression ouverte — sélectionnez votre imprimante dans la liste du système.",
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Erreur'
+    return { success: false, message: msg }
+  }
 }
 
 /**
@@ -249,9 +384,13 @@ export function buildKitchenPrintJobBuffer(order: any): Buffer {
   return Buffer.concat(chunks);
 }
 
-/** Envoie le ticket cuisine sur l'imprimante reseau (IP:port des reglages) via l'API Next.js (socket TCP). */
+/** Ticket cuisine : par défaut impression système locale (`window.print`) ; option ESC/POS réseau. */
 export async function printKitchenTicket(order: Order): Promise<{ success: boolean; message: string }> {
   const config = getPrinterSettings()
+  if (config.printMode === 'system') {
+    return printKitchenTicketSystem(order)
+  }
+
   const { printUrl } = getPrinterHttpEndpoints()
   const envRelay =
     typeof process !== 'undefined' && typeof process.env.NEXT_PUBLIC_PRINT_RELAY_URL === 'string'
@@ -268,7 +407,7 @@ export async function printKitchenTicket(order: Order): Promise<{ success: boole
     return {
       success: false,
       message:
-        "Impression impossible depuis l'app en ligne sans relais local : configurez l'URL du relais (PC sur le même Wi-Fi que l'imprimante, commande pnpm run print-relay) ou hébergez l'app sur votre réseau local.",
+        "Mode réseau ESC/POS : depuis l'app en ligne, configurez l'URL du relais (même Wi‑Fi que l'imprimante) ou repassez en impression locale (paramètres).",
     }
   }
 
@@ -325,11 +464,15 @@ export async function printKitchenTicket(order: Order): Promise<{ success: boole
   }
 }
 
-/** Test TCP vers l'imprimante (meme IP:port que les reglages, ou config passee). */
+/** Test : dialogue d'impression en mode système ; TCP en mode réseau. */
 export async function testPrinterConnection(
   config?: PrinterConfig
 ): Promise<{ success: boolean; message: string }> {
   const c = normalizePrinterConfig(config ?? getPrinterSettings())
+  if (c.printMode === 'system') {
+    return printTestPageSystem()
+  }
+
   const { testUrl } = getPrinterHttpEndpoints()
 
   const envRelay =
@@ -347,7 +490,7 @@ export async function testPrinterConnection(
     return {
       success: false,
       message:
-        "Depuis l'app en ligne, l'impression utilise le réseau de votre appareil : lancez « pnpm run print-relay » sur un PC du même Wi-Fi que l'imprimante, puis renseignez son URL (ex. http://192.168.1.20:3910) ci-dessus.",
+        "Mode réseau : depuis l'app en ligne, indiquez l'URL du relais (pnpm run print-relay sur un poste du même Wi‑Fi) ou utilisez l'impression locale.",
     }
   }
 
