@@ -143,21 +143,22 @@ export function SettingsDialog() {
                     setPrinterConfig({ ...printerConfig, printMode: 'network' })
                   }
                 >
-                  Réseau ESC/POS
+                  Réseau POS
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
                 <strong>Locale</strong> : le navigateur ouvre la fenêtre d&apos;impression de
                 l&apos;appareil ; choisissez l&apos;imprimante installée sur ce poste (USB, Wi‑Fi
-                ou Bluetooth selon le système). <strong>Réseau</strong> : envoi brut ESC/POS vers
-                IP:port — utile si le serveur Next tourne sur le même LAN que l&apos;imprimante.
+                ou Bluetooth selon le système). <strong>Réseau POS</strong> : impression vers
+                l&apos;imprimante thermique par IP et port (serveur d&apos;app sur le même réseau
+                local que l&apos;imprimante).
               </p>
             </div>
 
             {printerConfig.printMode === 'network' && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="printerIp">Adresse IP</Label>
+                  <Label htmlFor="printerIp">Adresse IP de l&apos;imprimante</Label>
                   <Input
                     id="printerIp"
                     placeholder="192.168.1.100"
@@ -169,7 +170,7 @@ export function SettingsDialog() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="printerPort">Port</Label>
+                  <Label htmlFor="printerPort">Port (souvent 9100)</Label>
                   <Input
                     id="printerPort"
                     type="number"

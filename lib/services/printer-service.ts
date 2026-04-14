@@ -11,7 +11,7 @@ const DEFAULT_PRINTER: PrinterConfig = {
 export interface PrinterConfig {
   /**
    * `system` : dialogue d’impression du navigateur / OS (aucun serveur, imprimantes locales ou réseau installées sur l’appareil).
-   * `network` : envoi ESC/POS brut en TCP vers IP:port (serveur Next sur le même LAN que l’imprimante).
+   * `network` : envoi brut en TCP vers IP:port saisis ci-dessous (serveur Next sur le même LAN que l’imprimante).
    */
   printMode: 'system' | 'network'
   ipAddress: string
@@ -32,19 +32,8 @@ function normalizePrinterConfig(raw: Partial<PrinterConfig> | null): PrinterConf
   }
 }
 
-/**
- * URLs d’impression en mode réseau : `/api/print` sauf si `NEXT_PUBLIC_PRINT_RELAY_URL`
- * est défini au build (relais HTTP optionnel, hors paramètres utilisateur).
- */
+/** URLs d’impression en mode réseau POS : API Next uniquement (IP:port dans le corps JSON). */
 export function getPrinterHttpEndpoints(): { printUrl: string; testUrl: string } {
-  const envRelay =
-    typeof process !== 'undefined' && typeof process.env.NEXT_PUBLIC_PRINT_RELAY_URL === 'string'
-      ? process.env.NEXT_PUBLIC_PRINT_RELAY_URL.trim()
-      : ''
-  const base = envRelay.replace(/\/$/, '')
-  if (base) {
-    return { printUrl: `${base}/print`, testUrl: `${base}/test` }
-  }
   return { printUrl: '/api/print', testUrl: '/api/print/test' }
 }
 
@@ -374,7 +363,7 @@ export function buildKitchenPrintJobBuffer(order: any): Buffer {
   return Buffer.concat(chunks);
 }
 
-/** Ticket cuisine : par défaut impression système locale (`window.print`) ; option ESC/POS réseau. */
+/** Ticket cuisine : par défaut impression système locale (`window.print`) ; option réseau POS (IP:port). */
 export async function printKitchenTicket(order: Order): Promise<{ success: boolean; message: string }> {
   const config = getPrinterSettings()
   if (config.printMode === 'system') {
@@ -382,21 +371,16 @@ export async function printKitchenTicket(order: Order): Promise<{ success: boole
   }
 
   const { printUrl } = getPrinterHttpEndpoints()
-  const envRelay =
-    typeof process !== 'undefined' && typeof process.env.NEXT_PUBLIC_PRINT_RELAY_URL === 'string'
-      ? process.env.NEXT_PUBLIC_PRINT_RELAY_URL.trim()
-      : ''
 
   if (
     typeof window !== 'undefined' &&
-    !envRelay &&
     (window.location.hostname.endsWith('.vercel.app') ||
       window.location.hostname === 'vercel.app')
   ) {
     return {
       success: false,
       message:
-        "Mode réseau ESC/POS : l'API d'impression sur Internet ne peut pas joindre une imprimante locale. Utilisez l'impression locale (paramètres) ou hébergez l'app sur le même réseau que l'imprimante.",
+        "Mode réseau POS : l'application en ligne ne peut pas joindre l'imprimante sur votre réseau local. Utilisez l'impression locale ou installez l'app sur le même LAN que l'imprimante.",
     }
   }
 
@@ -404,7 +388,7 @@ export async function printKitchenTicket(order: Order): Promise<{ success: boole
     const res = await fetch(printUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      mode: printUrl.startsWith('http') ? 'cors' : 'same-origin',
+      mode: 'same-origin',
       body: JSON.stringify({
         ipAddress: config.ipAddress,
         port: config.port,
@@ -464,21 +448,15 @@ export async function testPrinterConnection(
 
   const { testUrl } = getPrinterHttpEndpoints()
 
-  const envRelay =
-    typeof process !== 'undefined' && typeof process.env.NEXT_PUBLIC_PRINT_RELAY_URL === 'string'
-      ? process.env.NEXT_PUBLIC_PRINT_RELAY_URL.trim()
-      : ''
-
   if (
     typeof window !== 'undefined' &&
-    !envRelay &&
     (window.location.hostname.endsWith('.vercel.app') ||
       window.location.hostname === 'vercel.app')
   ) {
     return {
       success: false,
       message:
-        "Mode réseau : depuis l'app en ligne, le test TCP ne peut pas atteindre votre LAN. Utilisez l'impression locale ou hébergez l'app sur le réseau local.",
+        "Mode réseau POS : depuis l'app en ligne, le test ne peut pas joindre l'imprimante locale. Utilisez l'impression locale ou installez l'app sur le même réseau que l'imprimante.",
     }
   }
 
@@ -486,7 +464,7 @@ export async function testPrinterConnection(
     const res = await fetch(testUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      mode: testUrl.startsWith('http') ? 'cors' : 'same-origin',
+      mode: 'same-origin',
       body: JSON.stringify({
         ipAddress: c.ipAddress,
         port: c.port,
