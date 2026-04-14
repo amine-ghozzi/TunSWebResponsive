@@ -32,9 +32,9 @@
     <!-- Value from default config. -->
     <string name="generatorApp" translatable="false">bubblewrap-cli</string>
     <!-- Value from default config. -->
-    <string name="hostName" translatable="false">https://tuns-lac.vercel.app</string>
+    <string name="hostName" translatable="false">tuns-lac.vercel.app</string>
     <!-- Value from default config. -->
-    <string name="launchUrl" translatable="false">https://https://tuns-lac.vercel.app/</string>
+    <string name="launchUrl" translatable="false">https://tuns-lac.vercel.app/</string>
     <!-- Value from default config. -->
     <string name="launcherName" translatable="false">Tun\'s POS</string>
     <!-- Value from default config. -->

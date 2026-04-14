@@ -22,7 +22,8 @@ plugins {
 
 def twaManifest = [
     applicationId: 'app.vercel.tun_s_web_responsive.twa',
-    hostName: 'tun-s-web-responsive.vercel.app', // The domain being opened in the TWA.
+    // Hostname seul (sans https://) — doit correspondre au site déployé et au fichier assetlinks.json
+    hostName: 'tuns-lac.vercel.app',
     launchUrl: '/', // The start path for the TWA. Must be relative to the domain.
     name: 'Tun\\\'s Café resto — Caisse', // The application name.
     launcherName: 'Tun\\\'s POS', // The name shown on the Android Launcher.
@@ -76,12 +77,10 @@ android {
             // The URL the Web Manifest for the Progressive Web App that the TWA points to. This
             // is used by Chrome OS and Meta Quest to open the Web version of the PWA instead of
             // the TWA, as it will probably give a better user experience for non-mobile devices.
-            resValue "string", "webManifestUrl", 'https://tun-s-web-responsive.vercel.app/manifest.json'
-        
+            resValue "string", "webManifestUrl", 'https://' + twaManifest.hostName + '/manifest.json'
 
-        
             // This is used by Meta Quest.
-            resValue "string", "fullScopeUrl", 'https://tun-s-web-responsive.vercel.app/'
+            resValue "string", "fullScopeUrl", 'https://' + twaManifest.hostName + '/'
         
 
         

@@ -28,7 +28,7 @@
         \"relation\": [\"delegate_permission/common.handle_all_urls\"],
         \"target\": {
             \"namespace\": \"web\",
-            \"site\": \"https://https://tuns-lac.vercel.app\"
+            \"site\": \"https://tuns-lac.vercel.app\"
         }
     }]
     
@@ -36,8 +36,8 @@
     <string name="fallbackType" translatable="false">customtabs</string>
     <string name="fullScopeUrl" translatable="false">https://tuns-lac.vercel.app/</string>
     <string name="generatorApp" translatable="false">bubblewrap-cli</string>
-    <string name="hostName" translatable="false">https://tuns-lac.vercel.app</string>
-    <string name="launchUrl" translatable="false">https://https://tuns-lac.vercel.app/</string>
+    <string name="hostName" translatable="false">tuns-lac.vercel.app</string>
+    <string name="launchUrl" translatable="false">https://tuns-lac.vercel.app/</string>
     <string name="launcherName" translatable="false">Tun\'s POS</string>
     <string name="orientation" translatable="false">any</string>
     <string name="providerAuthority" translatable="false">app.vercel.tun_s_web_responsive.twa.fileprovider</string>

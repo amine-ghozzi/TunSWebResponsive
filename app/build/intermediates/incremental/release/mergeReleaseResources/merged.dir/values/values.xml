@@ -332,7 +332,7 @@
         \"relation\": [\"delegate_permission/common.handle_all_urls\"],
         \"target\": {
             \"namespace\": \"web\",
-            \"site\": \"https://https://tuns-lac.vercel.app\"
+            \"site\": \"https://tuns-lac.vercel.app\"
         }
     }]
     
@@ -351,8 +351,8 @@
     <string name="fallback_menu_item_share_link">Share link</string>
     <string name="fullScopeUrl" translatable="false">https://tuns-lac.vercel.app/</string>
     <string name="generatorApp" translatable="false">bubblewrap-cli</string>
-    <string name="hostName" translatable="false">https://tuns-lac.vercel.app</string>
-    <string name="launchUrl" translatable="false">https://https://tuns-lac.vercel.app/</string>
+    <string name="hostName" translatable="false">tuns-lac.vercel.app</string>
+    <string name="launchUrl" translatable="false">https://tuns-lac.vercel.app/</string>
     <string name="launcherName" translatable="false">Tun\'s POS</string>
     <string name="manage_space_no_data_toast">This app holds no browsing data.</string>
     <string name="manage_space_not_supported_toast">This app\'s data is stored in %1$s.</string>
