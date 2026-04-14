@@ -33,7 +33,6 @@ export function SettingsDialog() {
     printMode: 'system',
     ipAddress: '192.168.1.100',
     port: 9100,
-    localRelayBaseUrl: '',
   })
   const [cloverConfig, setCloverConfig] = useState<CloverConfig>({
     merchantId: '',
@@ -149,10 +148,9 @@ export function SettingsDialog() {
               </div>
               <p className="text-xs text-muted-foreground">
                 <strong>Locale</strong> : le navigateur ouvre la fenêtre d&apos;impression de
-                l&apos;appareil — aucun serveur ni relais ; choisissez l&apos;imprimante installée
-                sur ce poste (USB, Wi‑Fi ou Bluetooth selon le système).{' '}
-                <strong>Réseau</strong> : envoi brut vers IP:port (thermique en socket), pour
-                intégrations avancées.
+                l&apos;appareil ; choisissez l&apos;imprimante installée sur ce poste (USB, Wi‑Fi
+                ou Bluetooth selon le système). <strong>Réseau</strong> : envoi brut ESC/POS vers
+                IP:port — utile si le serveur Next tourne sur le même LAN que l&apos;imprimante.
               </p>
             </div>
 
@@ -184,29 +182,6 @@ export function SettingsDialog() {
                       })
                     }
                   />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="printerRelay">URL du relais (optionnel)</Label>
-                  <Input
-                    id="printerRelay"
-                    placeholder="http://192.168.1.20:3910"
-                    value={printerConfig.localRelayBaseUrl}
-                    onChange={(e) =>
-                      setPrinterConfig({
-                        ...printerConfig,
-                        localRelayBaseUrl: e.target.value.trim(),
-                      })
-                    }
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Si l&apos;app est en ligne, lancez{' '}
-                    <code className="rounded bg-muted px-1 py-0.5 text-[11px]">
-                      pnpm run print-relay
-                    </code>{' '}
-                    sur un poste du même Wi‑Fi et indiquez son URL. Sinon, laissez vide si le
-                    serveur Next est sur le LAN.
-                  </p>
                 </div>
               </>
             )}

@@ -6,21 +6,16 @@ const DEFAULT_PRINTER: PrinterConfig = {
   printMode: 'system',
   ipAddress: '192.168.1.100',
   port: 9100,
-  localRelayBaseUrl: '',
 }
 
 export interface PrinterConfig {
   /**
    * `system` : dialogue d’impression du navigateur / OS (aucun serveur, imprimantes locales ou réseau installées sur l’appareil).
-   * `network` : envoi ESC/POS brut en TCP (IP + port, option relais ou API Next).
+   * `network` : envoi ESC/POS brut en TCP vers IP:port (serveur Next sur le même LAN que l’imprimante).
    */
   printMode: 'system' | 'network'
   ipAddress: string
   port: number
-  /**
-   * Base URL du relais HTTP (ex. http://192.168.1.20:3910), uniquement en mode `network` si besoin.
-   */
-  localRelayBaseUrl: string
 }
 
 function normalizePrinterConfig(raw: Partial<PrinterConfig> | null): PrinterConfig {
@@ -34,24 +29,19 @@ function normalizePrinterConfig(raw: Partial<PrinterConfig> | null): PrinterConf
         ? raw.ipAddress.trim()
         : DEFAULT_PRINTER.ipAddress,
     port,
-    localRelayBaseUrl:
-      typeof raw?.localRelayBaseUrl === 'string' ? raw.localRelayBaseUrl.trim() : '',
   }
 }
 
-/** URLs d’impression : relais local (navigateur → LAN) ou API Next (serveur → LAN). */
+/**
+ * URLs d’impression en mode réseau : `/api/print` sauf si `NEXT_PUBLIC_PRINT_RELAY_URL`
+ * est défini au build (relais HTTP optionnel, hors paramètres utilisateur).
+ */
 export function getPrinterHttpEndpoints(): { printUrl: string; testUrl: string } {
   const envRelay =
     typeof process !== 'undefined' && typeof process.env.NEXT_PUBLIC_PRINT_RELAY_URL === 'string'
       ? process.env.NEXT_PUBLIC_PRINT_RELAY_URL.trim()
       : ''
-
-  if (typeof window === 'undefined') {
-    return { printUrl: '/api/print', testUrl: '/api/print/test' }
-  }
-
-  const stored = normalizePrinterConfig(getPrinterSettings())
-  const base = (stored.localRelayBaseUrl || envRelay).replace(/\/$/, '')
+  const base = envRelay.replace(/\/$/, '')
   if (base) {
     return { printUrl: `${base}/print`, testUrl: `${base}/test` }
   }
@@ -399,7 +389,6 @@ export async function printKitchenTicket(order: Order): Promise<{ success: boole
 
   if (
     typeof window !== 'undefined' &&
-    !config.localRelayBaseUrl &&
     !envRelay &&
     (window.location.hostname.endsWith('.vercel.app') ||
       window.location.hostname === 'vercel.app')
@@ -407,7 +396,7 @@ export async function printKitchenTicket(order: Order): Promise<{ success: boole
     return {
       success: false,
       message:
-        "Mode réseau ESC/POS : depuis l'app en ligne, configurez l'URL du relais (même Wi‑Fi que l'imprimante) ou repassez en impression locale (paramètres).",
+        "Mode réseau ESC/POS : l'API d'impression sur Internet ne peut pas joindre une imprimante locale. Utilisez l'impression locale (paramètres) ou hébergez l'app sur le même réseau que l'imprimante.",
     }
   }
 
@@ -482,7 +471,6 @@ export async function testPrinterConnection(
 
   if (
     typeof window !== 'undefined' &&
-    !c.localRelayBaseUrl &&
     !envRelay &&
     (window.location.hostname.endsWith('.vercel.app') ||
       window.location.hostname === 'vercel.app')
@@ -490,7 +478,7 @@ export async function testPrinterConnection(
     return {
       success: false,
       message:
-        "Mode réseau : depuis l'app en ligne, indiquez l'URL du relais (pnpm run print-relay sur un poste du même Wi‑Fi) ou utilisez l'impression locale.",
+        "Mode réseau : depuis l'app en ligne, le test TCP ne peut pas atteindre votre LAN. Utilisez l'impression locale ou hébergez l'app sur le réseau local.",
     }
   }
 
